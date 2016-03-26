@@ -1,0 +1,243 @@
+C0TSWS ;GPL-VistA Terminology Server Web Services ; 21 Mar 2016  10:23 PM
+ ;;1.0;C0TS VISTA TERMINOLOGY SERVER;;Mar 21, 2016;Build 1
+ ;
+ ; License Apache 2.0
+ ;
+ Q
+ ;
+wsCDSETS(RTN,FILTER) ; returns Codesets from BSTS
+ ; returns all codesets and thier subsets (no parameters)
+ ; or a single codeset and its subsets ( id= or name= )
+ ; format of the return is controlled by format= valid values are:
+ ;    format=html (default) a browser page with hyperlinks for the entries
+ ;    format=json 
+ ;    format=xml
+ ;    format=mumps ; a mumps array format
+ ;    format=yaml
+ ;    format=csv ; suitable for loading into a spreadsheet
+ ; 
+ I $G(RTN)="" S RTN=$NA(^TMP("C0TSWS",$J))
+ K @RTN
+ N ID,NAME,FORMAT,ALL,SELECT
+ S ID=$G(FILTER("id"))
+ S NAME=$G(FILTER("name"))
+ S ALL=0
+ S SELECT=NAME
+ S SELECT=ID ; id takes precidence
+ I SELECT="" S ALL=1
+ S FORMAT=$G(FILTER("format"))
+ I FORMAT="" S FORMAT="html"
+ ;
+ N SETS
+ I '$$GETSETS^C0TSWSD("SETS") D  Q
+ . S @RTN@(1)="ERROR RETRIEVING CODESETS"
+ ;
+ I FORMAT="html" D  Q
+ . S HTTPRSP("mime")="text/html"
+ . N GTOP,GBOT
+ . D HTMLTB(.GTOP,.GBOT,"BSTS Codesets")
+ . M @RTN=GTOP
+ . D THISPG(RTN,"bsts/codeset")
+ . N GARY
+ . S GARY("WIDTH")="60%"
+ . S GARY("TITLE")="BSTS Codesets"
+ . S GARY("HEADER",1)="ID"
+ . S GARY("HEADER",2)="Code"
+ . S GARY("HEADER",3)="Name"
+ . S GARY("HEADER",4)="Subset"
+ . S GARY("HEADER",5)="Version"
+ . S GARY("HEADER",6)="Status"
+ . S GARY("HEADER",7)="Quantity"
+ . N ZI S ZI=0
+ . N II S II=0
+ . F  S II=$O(SETS(II)) Q:+II=0  D  ;
+ . . S ZI=ZI+1
+ . . N ID,URL
+ . . S ID=SETS(II,"id")
+ . . S URL=SETS(II,"url")
+ . . N QTY
+ . . S QTY=$$QTYSET^C0TSWSD(ID) ; number of codes in the codeset
+ . . I QTY=0 S GARY(ZI,1)=ID
+ . . E  S GARY(ZI,1)="<a href="_URL_"&format=html target=_blank>"_ID_"</a>"
+ . . S GARY(ZI,2)=SETS(II,"name")
+ . . S GARY(ZI,3)=SETS(II,"text")
+ . . S GARY(ZI,4)=""
+ . . N ZV S ZV=""
+ . . I $D(SETS(II,"versions",1)) S ZV=SETS(II,"versions",$O(SETS(II,"versions",""),-1))
+ . . S ZV=$P(ZV,"^",1)
+ . . S GARY(ZI,5)=$G(ZV)
+ . . S GARY(ZI,6)="IHS Original"
+ . . S GARY(ZI,7)=QTY
+ . . ;N SUBSET,SOK
+ . . ;S SOK=$$SUBSET^BSTSAPIA("SUBSET",ID_"^1^1")
+ . . I $D(SETS(II,"subset")) D  ; subsets exist
+ . . . N JJ S JJ=0
+ . . . F  S JJ=$O(SETS(II,"subset",JJ)) Q:+JJ=0  D  ; for each subset
+ . . . . S ZI=ZI+1 ; next row
+ . . . . N SN,SURL
+ . . . . S SN=SETS(II,"subset",JJ,"name")
+ . . . . S SURL=SETS(II,"subset",JJ,"url")
+ . . . . S GARY(ZI,1)=""
+ . . . . S GARY(ZI,2)=""
+ . . . . S GARY(ZI,3)=""
+ . . . . S GARY(ZI,4)="<a href="_SURL_" target=_blank >"_SN_"</a>"
+ . . . . S GARY(ZI,5)=""
+ . . . . S GARY(ZI,6)="IHS Original"
+ . . . . S GARY(ZI,7)=""
+ . D GENHTML^C0TSWSU(RTN,"GARY")
+ . S @RTN@($O(@RTN@(""),-1)+1)=GBOT
+ ;M @RTN=SETS
+ ;
+ Q
+ ;
+wsCDLIST(RTN,FILTER) ; returns Codes from BSTS
+ ; returns all codes from a codeset identified by id
+ ; format of the return is controlled by format= valid values are:
+ ;    format=html (default) a browser page with hyperlinks for the entries
+ ;    format=json 
+ ;    format=xml
+ ;    format=mumps ; a mumps array format
+ ;    format=yaml
+ ;    format=csv ; suitable for loading into a spreadsheet
+ ; 
+ I $G(RTN)="" S RTN=$NA(^TMP("C0TSWS",$J))
+ K @RTN
+ N SETID,NAME,FORMAT,TEXT,IEN,MAX
+ S SETID=$G(FILTER("id"))
+ S MAX=$G(FILTER("max"))
+ I MAX="" S MAX=4000
+ S FORMAT=$G(FILTER("format"))
+ I FORMAT="" S FORMAT="html"
+ ;
+ N SETS
+ I '$$GETSETS^C0TSWSD("SETS") D  Q
+ . S @RTN@(1)="ERROR RETRIEVING CODESETS"
+ S IEN=$O(SETS("ID",SETID,""))
+ S NAME=SETS(IEN,"name")
+ S TEXT=SETS(IEN,"text")
+ ;
+ N LST
+ D LISTBUF^C0TSWSD(.LST,SETID) ; get the address of the list array for this codeset
+ ;
+ I FORMAT="html" D  Q
+ . S HTTPRSP("mime")="text/html"
+ . N GTOP,GBOT
+ . D HTMLTB(.GTOP,.GBOT,"BSTS Codes in "_NAME)
+ . M @RTN=GTOP
+ . D THISPG(RTN,"bsts/codes?id="_SETID)
+ . N GARY
+ . S GARY("WIDTH")="60%"
+ . S GARY("TITLE")="BSTS Codes in "_SETID_" "_NAME_" "_TEXT
+ . S GARY("HEADER",1)="CODE"
+ . S GARY("HEADER",2)="TERM"
+ . S GARY("HEADER",3)="CONCEPT ID"
+ . S GARY("HEADER",4)="CONCEPT"
+ . ;S GARY("HEADER",5)="CODE"
+ . ;S GARY("HEADER",6)="MAPS TO"
+ . ;N NCON S NCON=$NA(^BSTS(9002318.4,"C"))
+ . ;N NTERM S NTERM=$NA(^BSTS(9002318.3,"C"))
+ . N ZI S ZI=0
+ . N II S II=0
+ . F  S II=$O(@LST@(II)) Q:(+II=0)!(ZI>MAX)  D  ;
+ . . S ZI=ZI+1
+ . . ;S ID=SETS(II,"id")
+ . . S GARY(ZI,1)=@LST@(II,"code")
+ . . S GARY(ZI,2)=@LST@(II,"term")
+ . . S GARY(ZI,3)=@LST@(II,"conceptid")
+ . . S GARY(ZI,4)=@LST@(II,"concept")
+ . D GENHTML^C0TSWSU(RTN,"GARY")
+ . S @RTN@($O(@RTN@(""),-1)+1)=GBOT
+ ;
+ Q
+ ;
+wsSUBLST(RTN,FILTER) ; returns Codes from BSTS subsets
+ ; returns all codes from a subset identified by subset=
+ ; optionally include id= for the codeset which is related to the subset. default is 36
+ ; format of the return is controlled by format= valid values are:
+ ;    format=html (default) a browser page with hyperlinks for the entries
+ ;    format=json 
+ ;    format=xml
+ ;    format=mumps ; a mumps array format
+ ;    format=yaml
+ ;    format=csv ; suitable for loading into a spreadsheet
+ ; 
+ I $G(RTN)="" S RTN=$NA(^TMP("C0TSWS",$J))
+ K @RTN
+ N SUBSET,SETID,NAME,FORMAT,TEXT,IEN,MAX
+ S SUBSET=$G(FILTER("subset"))
+ S SUBSET=$TR(SUBSET,"_"," ")
+ Q:SUBSET=""
+ S SETID=$G(FILTER("id"))
+ I SETID="" S SETID=36
+ S MAX=$G(FILTER("max"))
+ I MAX="" S MAX=4000
+ S FORMAT=$G(FILTER("format"))
+ I FORMAT="" S FORMAT="html"
+ ;
+ N SETS
+ I '$$GETSETS^C0TSWSD("SETS") D  Q
+ . S @RTN@(1)="ERROR RETRIEVING CODESETS"
+ S IEN=$O(SETS("ID",SETID,""))
+ S NAME=SETS(IEN,"name")
+ S TEXT=SETS(IEN,"text")
+ ;
+ N SUB
+ S SUB=$$SUBBUF^C0TSWSD(SUBSET,SETID) ; get the address of the list array for this codeset
+ ;
+ I FORMAT="html" D  Q
+ . S HTTPRSP("mime")="text/html"
+ . N GTOP,GBOT
+ . D HTMLTB(.GTOP,.GBOT,"BSTS Codes in "_NAME)
+ . M @RTN=GTOP
+ . D THISPG(RTN,"bsts/codes?id="_SETID)
+ . N GARY
+ . S GARY("WIDTH")="60%"
+ . S GARY("TITLE")="BSTS Codes in subset "_SUBSET_" of "_SETID_" "_NAME_" "_TEXT
+ . S GARY("HEADER",1)="CODE"
+ . S GARY("HEADER",2)="TERM"
+ . S GARY("HEADER",3)="CONCEPT ID"
+ . S GARY("HEADER",4)="CONCEPT"
+ . ;S GARY("HEADER",5)="CODE"
+ . ;S GARY("HEADER",6)="MAPS TO"
+ . ;N NCON S NCON=$NA(^BSTS(9002318.4,"C"))
+ . ;N NTERM S NTERM=$NA(^BSTS(9002318.3,"C"))
+ . N ZI S ZI=0
+ . N II S II=0
+ . F  S II=$O(@SUB@(II)) Q:(+II=0)!(ZI>MAX)  D  ;
+ . . S ZI=ZI+1
+ . . ;S ID=SETS(II,"id")
+ . . S GARY(ZI,1)=@SUB@(II,"code")
+ . . S GARY(ZI,2)=@SUB@(II,"term")
+ . . S GARY(ZI,3)=@SUB@(II,"conceptid")
+ . . S GARY(ZI,4)=@SUB@(II,"concept")
+ . D GENHTML^C0TSWSU(RTN,"GARY")
+ . S @RTN@($O(@RTN@(""),-1)+1)=GBOT
+ ;
+ Q
+ ;
+THISPG(RTN,GURL) ; generate the top of page links
+ N GARY,GTMP1,GTMP2,GTMP3,GTMP4,GTMP5,GTMP6,GTMP7,GURL
+ I $G(GURL)="" S GURL="/bsts/codeset"
+ S GTMP1=" <a href="""_GURL_"?format=html"" > html</a>"
+ S GTMP2=" <a href="""_GURL_"?format=xml"" target=""_blank""> xml</a>"
+ S GTMP3=" <a href="""_GURL_"?format=json"" target=""_blank""> json</a>"
+ S GTMP4=" <a href="""_GURL_"?format=csv"" target=""_blank""> csv</a>"
+ D ADDTO^C0TSWSU(RTN,"<p>this page"_GTMP1_GTMP2_GTMP3_GTMP4_"</p>")
+ Q
+ ;
+HTMLTB(GTOP,GBOT,TITLE) ; sets beginning and ending fixed html
+ ;
+ ;S GTOP="<!DOCTYPE HTML><html><head></head><body>"
+ S GTOP(1)="<!DOCTYPE HTML>"
+ S GTOP(2)="<html>"
+ S GTOP(3)="<head>"
+ S GTOP(4)="<meta charset=""utf-8"">"
+ S GTOP(5)="<meta http-equiv=""Content-Type"" content=""text/html; charset=utf-8"" />"
+ S GTOP(6)="<title>"_$G(TITLE)_"</title>"
+ S GTOP(7)="<link rel=""stylesheet"" type=""text/css"" href=""/resources/css/c0tstyle.css"" />"
+ S GTOP(8)="</head>"
+ S GTOP(9)="<body>"
+ ;
+ S GBOT="</body></html>"
+ Q
+ ;
