@@ -345,3 +345,52 @@ mkxpath(zq,zm) ; extrinsic which returns the xpath derived from the $query value
  f zi=1:1:$ql(zq) s zr=zr_"/"_$qs(zq,zi)
  q zr
  ;
+ARY2XML(OUTXML,INARY,STK,CHILD) ; convert an array to xml
+ I '$D(@OUTXML@(1)) S @OUTXML@(1)="<?xml version=""1.0"" encoding=""utf-8"" ?>"
+ N II S II=""
+ N DATTR S DATTR="" ; deffered attributes
+ F  S II=$O(@INARY@(II),-1) Q:II=""  D  ;
+ . N ATTR,TAG
+ . S ATTR="" S TAG=""
+ . I II["@" D  ;
+ . . I TAG="" S TAG=$P(II,"@",1) S ATTR=$P(II,"@",2)_"="""_@INARY@(II)_""""
+ . . W:$G(DEBUG) !,"TAG="_TAG_" ATTR="_ATTR
+ . . ;I $O(@INARY@(II))["@" D  ;
+ . . ;F  S II=$O(@INARY@(II),-1) Q:II=""  Q:$O(@INARY@(II),-1)'[(TAG_"@")  D  ;
+ . . F  S II=$O(@INARY@(II),-1) Q:II=""  Q:II'[(TAG_"@")  D  ;
+ . . . S ATTR=ATTR_" "_$P(II,"@",2)_"="""_@INARY@(II)_""""
+ . . . W:$G(DEBUG) !,"ATTR= ",ATTR
+ . . . W:$G(DEBUG) !,"II= ",II
+ . . S II=$O(@INARY@(II)) ; reset to previous
+ . . N ENDING S ENDING="/"
+ . . I II["@" D  ;
+ . . . I $O(@INARY@(II),-1)=TAG S DATTR=" "_ATTR Q  ; deffered attributes
+ . . . I $D(@INARY@(TAG)) S ENDING=""
+ . . . D ONEOUT(OUTXML,"<"_TAG_" "_ATTR_ENDING_">")
+ . . . I ENDING="" D PUSH("STK","</"_TAG_">")
+ . I II'["@" D  ;
+ . . I +II=0 D  ;
+ . . . D ONEOUT(OUTXML,"<"_II_DATTR_">")
+ . . . S DATTR="" ; reinitialize after use
+ . . . D PUSH("STK","</"_II_">")
+ . I $D(@INARY@(II)) D ARY2XML(OUTXML,$NA(@INARY@(II)))
+ I $D(STK) F  D ONEOUT(OUTXML,$$POP("STK")) Q:'$D(STK)
+ Q
+ ;
+ONEOUT(ZBUF,ZTXT) ; ADDS A LINE TO ZBUF
+ N ZI S ZI=$O(@ZBUF@(""),-1)+1
+ S @ZBUF@(ZI)=ZTXT
+ Q
+ ;
+PUSH(BUF,STR) ;
+ D ONEOUT(BUF,STR)
+ Q
+ ;
+POP(BUF) ; extrinsic returns the last element and then deletes it
+ N NM,TX
+ S NM=$O(@BUF@(""),-1)
+ Q:NM="" NM
+ S TX=@BUF@(NM)
+ K @BUF@(NM)
+ Q TX
+ ;

@@ -141,10 +141,107 @@ wsCDLIST(RTN,FILTER) ; returns Codes from BSTS
  . F  S II=$O(@LST@(II)) Q:(+II=0)!(ZI>MAX)  D  ;
  . . S ZI=ZI+1
  . . ;S ID=SETS(II,"id")
- . . S GARY(ZI,1)=@LST@(II,"code")
+ . . N CDE S CDE=@LST@(II,"code")
+ . . S GARY(ZI,1)="<a href=code?id="_CDE_" target=_blank>"_CDE_"</>"
  . . S GARY(ZI,2)=@LST@(II,"term")
- . . S GARY(ZI,3)=@LST@(II,"conceptid")
+ . . N CNID S CNID=@LST@(II,"conceptid")
+ . . S GARY(ZI,3)="<a href=concept?id="_CNID_" target=_blank>"_CNID_"</>"
  . . S GARY(ZI,4)=@LST@(II,"concept")
+ . D GENHTML^C0TSWSU(RTN,"GARY")
+ . S @RTN@($O(@RTN@(""),-1)+1)=GBOT
+ ;
+ Q
+ ;
+wsCODE(RTN,FILTER) ; returns Code detail from BSTS TERMINOLOGY file
+ ; format of the return is controlled by format= valid values are:
+ ;    format=html (default) a browser page with hyperlinks for the entries
+ ;    format=json 
+ ;    format=xml
+ ;    format=mumps ; a mumps array format
+ ;    format=yaml
+ ;    format=csv ; suitable for loading into a spreadsheet
+ ; 
+ I $G(RTN)="" S RTN=$NA(^TMP("C0TSWS",$J))
+ K @RTN
+ N CODE,FILE,FIELD,VALUE,IEN,FORMAT,TERMARY
+ S FORMAT=$G(FILTER("format"))
+ I FORMAT="" S FORMAT="html"
+ S CODE=$G(FILTER("id"))
+ Q:CODE=""
+ ;
+ D TERMARY^C0TSFM("TERMARY",CODE)
+ Q:'$D(TERMARY)
+ ;ZWR TERMARY
+ ;
+ I FORMAT="html" D  Q
+ . S HTTPRSP("mime")="text/html"
+ . N GTOP,GBOT
+ . D HTMLTB(.GTOP,.GBOT,"Detail for BSTS Term "_CODE)
+ . M @RTN=GTOP
+ . D THISPG(RTN,"code?id="_CODE)
+ . N GARY
+ . S GARY("WIDTH")="60%"
+ . S GARY("TITLE")="Detail for BSTS Code "_CODE
+ . S GARY("HEADER",1)="FILE"
+ . S GARY("HEADER",2)="FIELD"
+ . S GARY("HEADER",3)="VALUE"
+ . N ZI S ZI=0
+ . N II S II=""
+ . F  S II=$O(TERMARY(II)) Q:II=""  D  ;
+ . . N JJ S JJ=""
+ . . F  S JJ=$O(TERMARY(II,JJ)) Q:JJ=""  D  ;
+ . . . S ZI=ZI+1
+ . . . S GARY(ZI,1)=II
+ . . . S GARY(ZI,2)=JJ
+ . . . S GARY(ZI,3)=$G(TERMARY(II,JJ))
+ . D GENHTML^C0TSWSU(RTN,"GARY")
+ . S @RTN@($O(@RTN@(""),-1)+1)=GBOT
+ ;
+ Q
+ ;
+wsCON(RTN,FILTER) ; returns Concept detail from BSTS CONCEPT file
+ ; format of the return is controlled by format= valid values are:
+ ;    format=html (default) a browser page with hyperlinks for the entries
+ ;    format=json 
+ ;    format=xml
+ ;    format=mumps ; a mumps array format
+ ;    format=yaml
+ ;    format=csv ; suitable for loading into a spreadsheet
+ ; 
+ I $G(RTN)="" S RTN=$NA(^TMP("C0TSWS",$J))
+ K @RTN
+ N CONID,FILE,FIELD,VALUE,IEN,FORMAT,CONARY
+ S FORMAT=$G(FILTER("format"))
+ I FORMAT="" S FORMAT="html"
+ S CONID=$G(FILTER("id"))
+ I CONID="" S CONID=$G(FILTER("conceptid"))
+ Q:CONID=""
+ ;
+ D CONARY^C0TSFM("CONARY",CONID)
+ Q:'$D(CONARY)
+ ;ZWR CONARY
+ ;
+ I FORMAT="html" D  Q
+ . S HTTPRSP("mime")="text/html"
+ . N GTOP,GBOT
+ . D HTMLTB(.GTOP,.GBOT,"Detail for BSTS Concept "_CONID)
+ . M @RTN=GTOP
+ . D THISPG(RTN,"concept?id="_CONID)
+ . N GARY
+ . S GARY("WIDTH")="60%"
+ . S GARY("TITLE")="Detail for BSTS Concept "_CONID
+ . S GARY("HEADER",1)="FILE/SUBFILE"
+ . S GARY("HEADER",2)="FIELD"
+ . S GARY("HEADER",3)="VALUE"
+ . N ZI S ZI=0
+ . N II S II=""
+ . F  S II=$O(CONARY(II)) Q:II=""  D  ;
+ . . N JJ S JJ=""
+ . . F  S JJ=$O(CONARY(II,JJ)) Q:JJ=""  D  ;
+ . . . S ZI=ZI+1
+ . . . S GARY(ZI,1)=II
+ . . . S GARY(ZI,2)=JJ
+ . . . S GARY(ZI,3)=$G(CONARY(II,JJ))
  . D GENHTML^C0TSWSU(RTN,"GARY")
  . S @RTN@($O(@RTN@(""),-1)+1)=GBOT
  ;
@@ -206,9 +303,13 @@ wsSUBLST(RTN,FILTER) ; returns Codes from BSTS subsets
  . F  S II=$O(@SUB@(II)) Q:(+II=0)!(ZI>MAX)  D  ;
  . . S ZI=ZI+1
  . . ;S ID=SETS(II,"id")
- . . S GARY(ZI,1)=@SUB@(II,"code")
+ . . N CDE S CDE=@SUB@(II,"code")
+ . . S GARY(ZI,1)="<a href=code?id="_CDE_" target=_blank>"_CDE_"</>"
+ . . ;S GARY(ZI,1)=@SUB@(II,"code")
  . . S GARY(ZI,2)=@SUB@(II,"term")
- . . S GARY(ZI,3)=@SUB@(II,"conceptid")
+ . . N CNID S CNID=@LST@(II,"conceptid")
+ . . S GARY(ZI,3)="<a href=concept?id="_CNID_" target=_blank>"_CNID_"</>"
+ . . ;S GARY(ZI,3)=@SUB@(II,"conceptid")
  . . S GARY(ZI,4)=@SUB@(II,"concept")
  . D GENHTML^C0TSWSU(RTN,"GARY")
  . S @RTN@($O(@RTN@(""),-1)+1)=GBOT
