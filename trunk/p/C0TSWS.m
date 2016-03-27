@@ -141,11 +141,13 @@ wsCDLIST(RTN,FILTER) ; returns Codes from BSTS
  . F  S II=$O(@LST@(II)) Q:(+II=0)!(ZI>MAX)  D  ;
  . . S ZI=ZI+1
  . . ;S ID=SETS(II,"id")
+ . . N TERMIEN S TERMIEN=@LST@(II,"termien")
  . . N CDE S CDE=@LST@(II,"code")
- . . S GARY(ZI,1)="<a href=code?id="_CDE_" target=_blank>"_CDE_"</>"
+ . . S GARY(ZI,1)="<a href=code?ien="_TERMIEN_" target=_blank>"_CDE_"</>"
  . . S GARY(ZI,2)=@LST@(II,"term")
+ . . N CONIEN S CONIEN=@LST@(II,"conceptien")
  . . N CNID S CNID=@LST@(II,"conceptid")
- . . S GARY(ZI,3)="<a href=concept?id="_CNID_" target=_blank>"_CNID_"</>"
+ . . S GARY(ZI,3)="<a href=concept?ien="_CONIEN_" target=_blank>"_CNID_"</>"
  . . S GARY(ZI,4)=@LST@(II,"concept")
  . D GENHTML^C0TSWSU(RTN,"GARY")
  . S @RTN@($O(@RTN@(""),-1)+1)=GBOT
@@ -167,9 +169,9 @@ wsCODE(RTN,FILTER) ; returns Code detail from BSTS TERMINOLOGY file
  S FORMAT=$G(FILTER("format"))
  I FORMAT="" S FORMAT="html"
  S CODE=$G(FILTER("id"))
- Q:CODE=""
+ S IEN=$G(FILTER("ien"))
  ;
- D TERMARY^C0TSFM("TERMARY",CODE)
+ D TERMARY^C0TSFM("TERMARY",CODE,IEN)
  Q:'$D(TERMARY)
  ;ZWR TERMARY
  ;
@@ -215,9 +217,9 @@ wsCON(RTN,FILTER) ; returns Concept detail from BSTS CONCEPT file
  I FORMAT="" S FORMAT="html"
  S CONID=$G(FILTER("id"))
  I CONID="" S CONID=$G(FILTER("conceptid"))
- Q:CONID=""
+ S IEN=$G(FILTER("ien"))
  ;
- D CONARY^C0TSFM("CONARY",CONID)
+ D CONARY^C0TSFM("CONARY",CONID,IEN)
  Q:'$D(CONARY)
  ;ZWR CONARY
  ;
@@ -231,17 +233,26 @@ wsCON(RTN,FILTER) ; returns Concept detail from BSTS CONCEPT file
  . S GARY("WIDTH")="60%"
  . S GARY("TITLE")="Detail for BSTS Concept "_CONID
  . S GARY("HEADER",1)="FILE/SUBFILE"
- . S GARY("HEADER",2)="FIELD"
- . S GARY("HEADER",3)="VALUE"
+ . S GARY("HEADER",2)="INDEX"
+ . S GARY("HEADER",3)="FIELD"
+ . S GARY("HEADER",4)="VALUE"
  . N ZI S ZI=0
  . N II S II=""
  . F  S II=$O(CONARY(II)) Q:II=""  D  ;
  . . N JJ S JJ=""
  . . F  S JJ=$O(CONARY(II,JJ)) Q:JJ=""  D  ;
  . . . S ZI=ZI+1
- . . . S GARY(ZI,1)=II
- . . . S GARY(ZI,2)=JJ
- . . . S GARY(ZI,3)=$G(CONARY(II,JJ))
+ . . . I +JJ=0 D  ;
+ . . . . S GARY(ZI,1)=II
+ . . . . S GARY(ZI,2)=""
+ . . . . S GARY(ZI,3)=JJ
+ . . . . S GARY(ZI,4)=$G(CONARY(II,JJ))
+ . . . E  D
+ . . . . S GARY(ZI,1)=II
+ . . . . S GARY(ZI,2)=JJ
+ . . . . N TFLD S TFLD=$O(CONARY(II,JJ,""))
+ . . . . S GARY(ZI,3)=TFLD
+ . . . . S GARY(ZI,4)=$G(CONARY(II,JJ,TFLD))
  . D GENHTML^C0TSWSU(RTN,"GARY")
  . S @RTN@($O(@RTN@(""),-1)+1)=GBOT
  ;
@@ -305,11 +316,9 @@ wsSUBLST(RTN,FILTER) ; returns Codes from BSTS subsets
  . . ;S ID=SETS(II,"id")
  . . N CDE S CDE=@SUB@(II,"code")
  . . S GARY(ZI,1)="<a href=code?id="_CDE_" target=_blank>"_CDE_"</>"
- . . ;S GARY(ZI,1)=@SUB@(II,"code")
  . . S GARY(ZI,2)=@SUB@(II,"term")
- . . N CNID S CNID=@LST@(II,"conceptid")
+ . . N CNID S CNID=@SUB@(II,"conceptid")
  . . S GARY(ZI,3)="<a href=concept?id="_CNID_" target=_blank>"_CNID_"</>"
- . . ;S GARY(ZI,3)=@SUB@(II,"conceptid")
  . . S GARY(ZI,4)=@SUB@(II,"concept")
  . D GENHTML^C0TSWSU(RTN,"GARY")
  . S @RTN@($O(@RTN@(""),-1)+1)=GBOT

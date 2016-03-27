@@ -74,6 +74,8 @@ GETLIST(RTN,ID) ; get a code list array for codeset ID
  . . S @RTN@(ZN,"code")=CODE
  . . S @RTN@(ZN,"conceptid")=CONID
  . . S @RTN@(ZN,"concept")=CONCEPT
+ . . S @RTN@(ZN,"termien")=TIEN
+ . . S @RTN@(ZN,"conceptien")=CIEN
  . ;B
  Q
  ;
@@ -103,7 +105,7 @@ LISTBUF(RTN,ID) ; returns a cached buffers of the list of codeset ID
  . S @GN@(0)=Y_"^"_$$NOW^XLFDT_"^C0TS Code List Buffer Area"
  ;
  S RTN=$NA(@GN@(ID))
- I '$D(@RTN) D GETLIST(RTN,ID)
+ I $G(@RTN@(1))="" D GETLIST(RTN,ID)
  I $$QTYSET(ID)=0 S RTN=""
  Q
  ;

@@ -54,27 +54,33 @@ FMX(RTN,PTR,FILE,IEN) ; return an array of a fileman record for external use in 
  ;G("SUBSETS",2,"SUBSETS")="SRCH Cardiology"
  ;G("SUBSETS",3,"SUBSETS")="IHS Problem List"
  ;
-CONARY(ARY,CONID) ; returns a concept array for concept code CONID  in ARY, passed by name
+CONARY(ARY,CONID,CIEN) ; returns a concept array for concept code CONID  in ARY, passed by name
  ;
- N CFN,CIEN,FILENM
+ N CFN,FILENM
  S CFN=9002318.4 ; concept file number
- S CIEN=$O(^BSTS(CFN,"CODE",CONID,""))
+ I $G(CIEN)="" D  ;
+ . S CIEN=$O(^BSTS(CFN,"CODE",CONID,""))
  D FMX(ARY,,CFN,CIEN)
  S FILENM=$O(^DD(CFN,0,"NM",""))
  S FILENM=$TR(FILENM," ","_")
- I $G(@ARY@(FILENM,"CONCEPT_ID"))'="" S @ARY@(FILENM,"uri")="concept?id="_CONID
+ I $G(@ARY@(FILENM,"CONCEPT_ID"))'="" 
+ I $G(CONID)'="" S @ARY@(FILENM,"uri")="concept?id="_CONID
+ E  S @ARY@(FILENM,"uri")="concept?ien="_CIEN
  ;
  Q
  ;
-TERMARY(ARY,CODE) ; returns a concept array for concept code CONID  in ARY, passed by name
+TERMARY(ARY,CODE,TIEN) ; returns a concept array for concept code CONID  in ARY, passed by name
  ;
- N TFN,TIEN,FILENM
+ N TFN,FILENM
  S TFN=9002318.3 ; term file number
- S TIEN=$O(^BSTS(TFN,"CODE",CODE,""))
+ I $G(TIEN)="" D  ;
+ . S TIEN=$O(^BSTS(TFN,"CODE",CODE,""))
  D FMX(ARY,,TFN,TIEN)
  S FILENM=$O(^DD(TFN,0,"NM",""))
  S FILENM=$TR(FILENM," ","_")
- I $G(@ARY@(FILENM,"DESCRIPTION_ID"))'="" S @ARY@(FILENM,"uri")="code?id="_CODE
+ I $G(@ARY@(FILENM,"DESCRIPTION_ID"))'="" 
+ I $G(CODE)'="" S @ARY@(FILENM,"uri")="code?id="_CODE
+ E  S @ARY@(FILENM,"uri")="code?ien="_TIEN
  ;
  Q
  ;
