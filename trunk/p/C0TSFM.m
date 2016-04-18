@@ -20,8 +20,10 @@ FMX(RTN,PTR,FILE,IEN) ; return an array of a fileman record for external use in 
  F  D  Q:%=""  ;
  . N FNUM,FNAME,IENS,FIELD,VAL
  . S FNUM=$QS(%,1)
- . S FNAME=$O(^DD(FNUM,0,"NM",""))
- . S FNAME=$TR(FNAME," ","_")
+ . I $D(^DD(FNUM,0,"NM")) D  ;
+ . . S FNAME=$O(^DD(FNUM,0,"NM",""))
+ . . S FNAME=$TR(FNAME," ","_")
+ . E  S FNAME=FNUM
  . S IENS=$QS(%,2)
  . S FIELD=$QS(%,3)
  . S FIELD=$TR(FIELD," ","_")
@@ -31,7 +33,8 @@ FMX(RTN,PTR,FILE,IEN) ; return an array of a fileman record for external use in 
  . . S @RTN@(FNAME,"ien")=$P(IENS,",",1)
  . E  D  ;
  . . N I2 S I2=$O(@RTN@(FNAME,""),-1)+1
- . . S @RTN@(FNAME,I2,FIELD)=VAL
+ . . S @RTN@(FNAME,$P(IENS,","),FIELD)=VAL
+ . . ;S @RTN@(FNAME,I2,FIELD)=VAL
  . . ;S @RTN@(FNAME,I2,"iens")=IENS
  . W:$G(DEBUG)=1 !,%,"=",@%
  . S %=$Q(@%)
@@ -76,8 +79,10 @@ TERMARY(ARY,CODE,TIEN) ; returns a concept array for concept code CONID  in ARY,
  I $G(TIEN)="" D  ;
  . S TIEN=$O(^BSTS(TFN,"CODE",CODE,""))
  D FMX(ARY,,TFN,TIEN)
- S FILENM=$O(^DD(TFN,0,"NM",""))
- S FILENM=$TR(FILENM," ","_")
+ I $D(^DD(TFN,0,"NM")) D  ;
+ . S FILENM=$O(^DD(TFN,0,"NM",""))
+ . S FILENM=$TR(FILENM," ","_")
+ E  S FILENM=TFN
  I $G(@ARY@(FILENM,"DESCRIPTION_ID"))'="" 
  I $G(CODE)'="" S @ARY@(FILENM,"uri")="code?id="_CODE
  E  S @ARY@(FILENM,"uri")="code?ien="_TIEN

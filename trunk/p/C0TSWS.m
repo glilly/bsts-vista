@@ -241,18 +241,21 @@ wsCON(RTN,FILTER) ; returns Concept detail from BSTS CONCEPT file
  . F  S II=$O(CONARY(II)) Q:II=""  D  ;
  . . N JJ S JJ=""
  . . F  S JJ=$O(CONARY(II,JJ)) Q:JJ=""  D  ;
- . . . S ZI=ZI+1
  . . . I +JJ=0 D  ;
+ . . . . S ZI=ZI+1
  . . . . S GARY(ZI,1)=II
  . . . . S GARY(ZI,2)=""
  . . . . S GARY(ZI,3)=JJ
  . . . . S GARY(ZI,4)=$G(CONARY(II,JJ))
  . . . E  D
- . . . . S GARY(ZI,1)=II
- . . . . S GARY(ZI,2)=JJ
- . . . . N TFLD S TFLD=$O(CONARY(II,JJ,""))
- . . . . S GARY(ZI,3)=TFLD
- . . . . S GARY(ZI,4)=$G(CONARY(II,JJ,TFLD))
+ . . . . N KK S KK=""
+ . . . . F  S KK=$O(CONARY(II,JJ,KK)) Q:KK=""  D  ;
+ . . . . . S ZI=ZI+1
+ . . . . . S GARY(ZI,1)=II
+ . . . . . S GARY(ZI,2)=JJ
+ . . . . . N TFLD S TFLD=KK
+ . . . . . S GARY(ZI,3)=TFLD
+ . . . . . S GARY(ZI,4)=$G(CONARY(II,JJ,KK))
  . D GENHTML^C0TSWSU(RTN,"GARY")
  . S @RTN@($O(@RTN@(""),-1)+1)=GBOT
  ;
