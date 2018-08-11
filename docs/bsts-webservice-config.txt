@@ -1,0 +1,14 @@
+NUMBER: 11                              HTTP VERB: GET                                                   
+  URI: bsts/codeset                     EXECUTION ENDPOINT: wsCDSETS^C0TSWS                              
+                                                                                                         
+NUMBER: 12                              HTTP VERB: GET                                                   
+  URI: bsts/codelist                    EXECUTION ENDPOINT: wsCDLIST^C0TSWS                              
+                                                                                                         
+NUMBER: 13                              HTTP VERB: GET                                                   
+  URI: bsts/subset                      EXECUTION ENDPOINT: wsSUBLST^C0TSWS                              
+                                                                                                         
+NUMBER: 14                              HTTP VERB: GET                                                   
+  URI: bsts/code                        EXECUTION ENDPOINT: wsCODE^C0TSWS                                
+                                                                                                         
+NUMBER: 15                              HTTP VERB: GET                                                   
+  URI: bsts/concept                     EXECUTION ENDPOINT: wsCON^C0TSWS 
