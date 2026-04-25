@@ -394,3 +394,215 @@ POP(BUF) ; extrinsic returns the last element and then deletes it
  K @BUF@(NM)
  Q TX
  ;
+RMCNT0(RTN) ; remove ADDTO line count @RTN@(0) so HTTP writer does not emit it as data
+ I $D(@RTN@(0)) K @RTN@(0)
+ Q
+ ;
+ESCBS() Q $C(92)_$C(92) ; JSON \\
+ESCQ() Q $C(92)_$C(34) ; JSON \"
+ ;
+JESC(S) ; JSON string escape; pass by value
+ N R,I,C
+ S S=$G(S),R=""
+ F I=1:1:$L(S) S C=$E(S,I) D
+ . I C=$C(92) S R=R_$$ESCBS^C0TSWSU Q
+ . I C=$C(34) S R=R_$$ESCQ^C0TSWSU Q
+ . I C=$C(10) S R=R_$C(92)_"n" Q
+ . I C=$C(13) S R=R_$C(92)_"r" Q
+ . I C=$C(9) S R=R_$C(92)_"t" Q
+ . S R=R_C
+ Q R
+ ;
+JSTR(S) Q $C(34)_$$JESC^C0TSWSU($G(S))_$C(34)
+ ;
+XESC(S) ; minimal XML text body escape
+ N R
+ S R=$G(S)
+ S R=$$REP^C0TSWSU(R,"&","&amp;")
+ S R=$$REP^C0TSWSU(R,"<","&lt;")
+ S R=$$REP^C0TSWSU(R,">","&gt;")
+ Q R
+ ;
+REP(S,A,B) ; replace all A in S with B
+ N R,P
+ S S=$G(S),R="",P=1
+ F  S P=$F(S,A,P) Q:'P  S R=R_$E(S,1,P-$L(A)-1)_B,S=$E(S,P,999999),P=1
+ S R=R_S
+ Q R
+ ;
+CSVF(S) ; CSV field (quoting)
+ N Q S Q=$C(34)
+ S S=$$REP^C0TSWSU($G(S),Q,Q_Q) Q Q_S_Q
+ ;
+SET1L(RTN,LINE) ; one output line, no @RTN@(0) line-count
+ N ZI
+ S ZI=$O(@RTN@("AAAAA"),-1)+1
+ S @RTN@(ZI)=$G(LINE)
+ Q
+ ;
+WSCDSETJ(RTN,SETS) ; JSON — codeset list; SETS passed by .SETS
+ N II,S,COM,FRAG
+ S S="{""resourceType"":""BstsCodesetList"",""codesets"":[",COM=""
+ F II=0:0 S II=$O(SETS(II)) Q:+II=0  D
+ . S FRAG=$$G1SETJ^C0TSWSU(.SETS,II)
+ . S S=S_COM_FRAG,COM=","
+ S S=S_"]}"
+ D SET1L^C0TSWSU(RTN,S)
+ Q
+ ;
+G1SETJ(SETS,II) ; one codeset as JSON object
+ N ID,QTY,ZV,JJ,SB,SC,FRG
+ S ID=SETS(II,"id")
+ S QTY=$$QTYSET^C0TSWSD(ID)
+ S ZV="" I $D(SETS(II,"versions",1)) S ZV=SETS(II,"versions",$O(SETS(II,"versions",""),-1))
+ S ZV=$P(ZV,"^",1)
+ S SB="[",SC="" I $D(SETS(II,"subset")) D
+ . F JJ=0:0 S JJ=$O(SETS(II,"subset",JJ)) Q:+JJ=0  D
+ . . S FRG=SETS(II,"subset",JJ,"name")
+ . . S SB=SB_SC_"{""name"":"_$$JSTR^C0TSWSU(FRG)_",""url"":"_$$JSTR^C0TSWSU(SETS(II,"subset",JJ,"url"))_"}",SC=","
+ S SB=SB_"]"
+ Q "{"_"""id"":"_$$JSTR^C0TSWSU(ID)_",""name"":"_$$JSTR^C0TSWSU(SETS(II,"name"))_",""text"":"_$$JSTR^C0TSWSU(SETS(II,"text"))_",""codelist"":"_$$JSTR^C0TSWSU(SETS(II,"url"))_",""version"":"_$$JSTR^C0TSWSU(ZV)_",""status"":"_$$JSTR^C0TSWSU("IHS Original")_",""quantity"":"_QTY_",""subsets"":"_SB_"}"
+ ;
+WSCDSETX(RTN,SETS) ; simple XML
+ D SET1L^C0TSWSU(RTN,"<?xml version=""1.0"" encoding=""utf-8""?>")
+ D SET1L^C0TSWSU(RTN,"<codesets>")
+ N II,ID,QTY,ZV,JJ
+ F II=0:0 S II=$O(SETS(II)) Q:+II=0  D
+ . S ID=SETS(II,"id"),QTY=$$QTYSET^C0TSWSD(ID)
+ . S ZV="" I $D(SETS(II,"versions",1)) S ZV=SETS(II,"versions",$O(SETS(II,"versions",""),-1))
+ . S ZV=$P(ZV,"^",1)
+ . D SET1L^C0TSWSU(RTN,"<codeset id="_$$JSTR^C0TSWSU(ID)_">")
+ . D SET1L^C0TSWSU(RTN,"<name>"_$$XESC^C0TSWSU(SETS(II,"name"))_"</name>")
+ . D SET1L^C0TSWSU(RTN,"<text>"_$$XESC^C0TSWSU(SETS(II,"text"))_"</text>")
+ . D SET1L^C0TSWSU(RTN,"<codelist>"_$$XESC^C0TSWSU(SETS(II,"url"))_"</codelist>")
+ . D SET1L^C0TSWSU(RTN,"<version>"_$$XESC^C0TSWSU(ZV)_"</version>")
+ . D SET1L^C0TSWSU(RTN,"<quantity>"_QTY_"</quantity>")
+ . I $D(SETS(II,"subset")) D
+ . . D SET1L^C0TSWSU(RTN,"<subsets>")
+ . . F JJ=0:0 S JJ=$O(SETS(II,"subset",JJ)) Q:+JJ=0  D
+ . . . D SET1L^C0TSWSU(RTN,"<subset name="_$$JSTR^C0TSWSU(SETS(II,"subset",JJ,"name"))_" url="_$$JSTR^C0TSWSU(SETS(II,"subset",JJ,"url"))_" />")
+ . . D SET1L^C0TSWSU(RTN,"</subsets>")
+ . D SET1L^C0TSWSU(RTN,"</codeset>")
+ D SET1L^C0TSWSU(RTN,"</codesets>")
+ Q
+ ;
+WSCDSETC(RTN,SETS) ; CSV: one line per main row, subset lines follow with leading comma groups
+ D SET1L^C0TSWSU(RTN,"id,name,text,subset,version,status,quantity")
+ N II,JJ,ZV,ID,QTY
+ F II=0:0 S II=$O(SETS(II)) Q:+II=0  D
+ . S ID=SETS(II,"id")
+ . S QTY=$$QTYSET^C0TSWSD(ID)
+ . S ZV="" I $D(SETS(II,"versions",1)) S ZV=SETS(II,"versions",$O(SETS(II,"versions",""),-1))
+ . S ZV=$P(ZV,"^",1)
+ . D SET1L^C0TSWSU(RTN,$$CSVF^C0TSWSU(ID)_","_$$CSVF^C0TSWSU(SETS(II,"name"))_","_$$CSVF^C0TSWSU(SETS(II,"text"))_","_$$CSVF^C0TSWSU("")_","_$$CSVF^C0TSWSU(ZV)_","_$$CSVF^C0TSWSU("IHS Original")_","_QTY)
+ . I $D(SETS(II,"subset")) D
+ . . F JJ=0:0 S JJ=$O(SETS(II,"subset",JJ)) Q:+JJ=0  D
+ . . . D SET1L^C0TSWSU(RTN,$$CSVF^C0TSWSU("")_","_$$CSVF^C0TSWSU("")_","_$$CSVF^C0TSWSU("")_","_$$CSVF^C0TSWSU(SETS(II,"subset",JJ,"name"))_","_$$CSVF^C0TSWSU("")_","_$$CSVF^C0TSWSU("IHS Original")_","_$$CSVF^C0TSWSU(""))
+ Q
+ ;
+WSCODEJ(RTN,ROOT) ; codelist or subset list JSON; ROOT("ref")=global (multi-line, GT.M string cap safe)
+ N II,COM,MAX,CNT,R,ROW,HEAD
+ S R=$G(ROOT("ref")) I R="" Q
+ S MAX=+$G(ROOT("max")) I MAX'>0 S MAX=4000
+ S CNT=0
+ S HEAD="{""resourceType"":""BstsCodeList"",""id"":"_$$JSTR^C0TSWSU($G(ROOT("id")))_",""name"":"_$$JSTR^C0TSWSU($G(ROOT("name")))_",""rows"":["
+ D SET1L^C0TSWSU(RTN,HEAD)
+ S COM="" F II=0:0 S II=$O(@R@(II)) Q:+II=0  D
+ . I (CNT+1)>MAX Q
+ . S ROW=COM_"{""code"":"_$$JSTR^C0TSWSU($G(@R@(II,"code")))_",""term"":"_$$JSTR^C0TSWSU($G(@R@(II,"term")))_",""conceptId"":"_$$JSTR^C0TSWSU($G(@R@(II,"conceptid")))_",""concept"":"_$$JSTR^C0TSWSU($G(@R@(II,"concept")))_"}",COM=",",CNT=CNT+1
+ . D SET1L^C0TSWSU(RTN,ROW)
+ D SET1L^C0TSWSU(RTN,"]}")
+ Q
+ ;
+WSTEMJ(RTN,CODE,TERMARY) ; code detail to JSON
+ N S,II,JJ,COM
+ S S="{""resourceType"":""BstsCodeDetail"",""code"":"_$$JSTR^C0TSWSU($G(CODE))_",""rows"":[",COM=""
+ S II="" F  S II=$O(TERMARY(II)) Q:II=""  D
+ . S JJ="" F  S JJ=$O(TERMARY(II,JJ)) Q:JJ=""  D
+ . . S S=S_COM_"{""file"":"_$$JSTR^C0TSWSU(II)_",""field"":"_$$JSTR^C0TSWSU(JJ)_",""value"":"_$$JSTR^C0TSWSU($G(TERMARY(II,JJ)))_"}",COM=","
+ S S=S_"]}"
+ D SET1L^C0TSWSU(RTN,S)
+ Q
+ ;
+WSCONJ(RTN,CONID,CONARY) ; concept to JSON
+ N S,II,JJ,KK,COM
+ S S="{""resourceType"":""BstsConceptDetail"",""conceptId"":"_$$JSTR^C0TSWSU($G(CONID))_",""rows"":[",COM=""
+ S II="" F  S II=$O(CONARY(II)) Q:II=""  D
+ . S JJ="" F  S JJ=$O(CONARY(II,JJ)) Q:JJ=""  D
+ . . I +JJ=0 S S=S_COM_"{""file"":"_$$JSTR^C0TSWSU(II)_",""index"":null,""field"":"_$$JSTR^C0TSWSU(JJ)_",""value"":"_$$JSTR^C0TSWSU($G(CONARY(II,JJ)))_"}",COM="," Q
+ . . S KK="" F  S KK=$O(CONARY(II,JJ,KK)) Q:KK=""  D
+ . . . S S=S_COM_"{""file"":"_$$JSTR^C0TSWSU(II)_",""index"":"_$$JSTR^C0TSWSU(JJ)_",""field"":"_$$JSTR^C0TSWSU(KK)_",""value"":"_$$JSTR^C0TSWSU($G(CONARY(II,JJ,KK)))_"}",COM=","
+ S S=S_"]}"
+ D SET1L^C0TSWSU(RTN,S)
+ Q
+ ;
+WSCODEX(RTN,CODE,TERMARY) ; code detail to XML
+ D SET1L^C0TSWSU(RTN,"<?xml version=""1.0"" encoding=""utf-8""?>")
+ D SET1L^C0TSWSU(RTN,"<BstsCodeDetail code="_$$JSTR^C0TSWSU($G(CODE))_">")
+ N II,JJ
+ S II="" F  S II=$O(TERMARY(II)) Q:II=""  D
+ . S JJ="" F  S JJ=$O(TERMARY(II,JJ)) Q:JJ=""  D
+ . . D SET1L^C0TSWSU(RTN,"<row file="_$$JSTR^C0TSWSU(II)_" field="_$$JSTR^C0TSWSU(JJ)_">"_$$XESC^C0TSWSU($G(TERMARY(II,JJ)))_"</row>")
+ D SET1L^C0TSWSU(RTN,"</BstsCodeDetail>")
+ Q
+ ;
+WSCONX(RTN,CONID,CONARY) ; concept to XML
+ D SET1L^C0TSWSU(RTN,"<?xml version=""1.0"" encoding=""utf-8""?>")
+ D SET1L^C0TSWSU(RTN,"<BstsConceptDetail conceptId="_$$JSTR^C0TSWSU($G(CONID))_">")
+ N II,JJ,KK
+ S II="" F  S II=$O(CONARY(II)) Q:II=""  D
+ . S JJ="" F  S JJ=$O(CONARY(II,JJ)) Q:JJ=""  D
+ . . I +JJ=0 D SET1L^C0TSWSU(RTN,"<row file="_$$JSTR^C0TSWSU(II)_" field="_$$JSTR^C0TSWSU(JJ)_">"_$$XESC^C0TSWSU($G(CONARY(II,JJ)))_"</row>") Q
+ . . S KK="" F  S KK=$O(CONARY(II,JJ,KK)) Q:KK=""  D
+ . . . D SET1L^C0TSWSU(RTN,"<row file="_$$JSTR^C0TSWSU(II)_" index="_$$JSTR^C0TSWSU(JJ)_" field="_$$JSTR^C0TSWSU(KK)_">"_$$XESC^C0TSWSU($G(CONARY(II,JJ,KK)))_"</row>")
+ D SET1L^C0TSWSU(RTN,"</BstsConceptDetail>")
+ Q
+ ;
+WSCODLXML(RTN,ROOT) ; codelist/subset to simple XML; ROOT("ref")=global name
+ N II,MAX,CNT,R
+ S R=$G(ROOT("ref")) I R="" Q
+ S MAX=+$G(ROOT("max")) I MAX'>0 S MAX=4000
+ S CNT=0
+ D SET1L^C0TSWSU(RTN,"<?xml version=""1.0"" encoding=""utf-8""?>")
+ D SET1L^C0TSWSU(RTN,"<BstsCodeList id="_$$JSTR^C0TSWSU($G(ROOT("id")))_" name="_$$JSTR^C0TSWSU($G(ROOT("name")))_">")
+ F II=0:0 S II=$O(@R@(II)) Q:+II=0  D
+ . I (CNT+1)>MAX Q
+ . D SET1L^C0TSWSU(RTN,"<row><code>"_$$XESC^C0TSWSU($G(@R@(II,"code")))_"</code><term>"_$$XESC^C0TSWSU($G(@R@(II,"term")))_"</term><conceptId>"_$$XESC^C0TSWSU($G(@R@(II,"conceptid")))_"</conceptId><concept>"_$$XESC^C0TSWSU($G(@R@(II,"concept")))_"</concept></row>")
+ . S CNT=CNT+1
+ D SET1L^C0TSWSU(RTN,"</BstsCodeList>")
+ Q
+ ;
+WSCODLC(RTN,ROOT) ; codelist/subset to CSV; ROOT("ref")=global name string
+ D SET1L^C0TSWSU(RTN,"code,term,conceptId,concept")
+ N II,MAX,CNT,R
+ S R=$G(ROOT("ref")) I R="" Q
+ S MAX=+$G(ROOT("max")) I MAX'>0 S MAX=4000
+ S CNT=0
+ F II=0:0 S II=$O(@R@(II)) Q:+II=0  D
+ . I (CNT+1)>MAX Q
+ . D SET1L^C0TSWSU(RTN,$$CSVF^C0TSWSU($G(@R@(II,"code")))_","_$$CSVF^C0TSWSU($G(@R@(II,"term")))_","_$$CSVF^C0TSWSU($G(@R@(II,"conceptid")))_","_$$CSVF^C0TSWSU($G(@R@(II,"concept"))))
+ . S CNT=CNT+1
+ Q
+ ;
+WSCODCC(RTN,CODE,TERMARY) ; code detail to CSV
+ D SET1L^C0TSWSU(RTN,"file,field,value")
+ N II,JJ
+ S II="" F  S II=$O(TERMARY(II)) Q:II=""  D
+ . S JJ="" F  S JJ=$O(TERMARY(II,JJ)) Q:JJ=""  D
+ . . D SET1L^C0TSWSU(RTN,$$CSVF^C0TSWSU(II)_","_$$CSVF^C0TSWSU(JJ)_","_$$CSVF^C0TSWSU($G(TERMARY(II,JJ))))
+ Q
+ ;
+WSCONCC(RTN,CONID,CONARY) ; concept to CSV
+ D SET1L^C0TSWSU(RTN,"fileOrSubfile,index,field,value")
+ N II,JJ,KK
+ S II="" F  S II=$O(CONARY(II)) Q:II=""  D
+ . S JJ="" F  S JJ=$O(CONARY(II,JJ)) Q:JJ=""  D
+ . . I +JJ=0 D SET1L^C0TSWSU(RTN,$$CSVF^C0TSWSU(II)_","_$$CSVF^C0TSWSU("")_","_$$CSVF^C0TSWSU(JJ)_","_$$CSVF^C0TSWSU($G(CONARY(II,JJ)))) Q
+ . . S KK="" F  S KK=$O(CONARY(II,JJ,KK)) Q:KK=""  D
+ . . . D SET1L^C0TSWSU(RTN,$$CSVF^C0TSWSU(II)_","_$$CSVF^C0TSWSU(JJ)_","_$$CSVF^C0TSWSU(KK)_","_$$CSVF^C0TSWSU($G(CONARY(II,JJ,KK))))
+ Q
+ ;
+UNKFMT(FMT) ; 1 = unsupported alternate format
+ I FMT'="html",FMT'="json",FMT'="xml",FMT'="csv",FMT'="mumps" Q 1
+ Q 0
+ ;

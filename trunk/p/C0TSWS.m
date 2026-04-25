@@ -27,6 +27,7 @@ wsCDSETS(RTN,FILTER) ; returns Codesets from BSTS
  I SELECT="" S ALL=1
  S FORMAT=$G(FILTER("format"))
  I FORMAT="" S FORMAT="html"
+ I $$UNKFMT^C0TSWSU(FORMAT) S FORMAT="json"
  ;
  N SETS
  I '$$GETSETS^C0TSWSD("SETS") D  Q
@@ -86,9 +87,12 @@ wsCDSETS(RTN,FILTER) ; returns Codesets from BSTS
  . . . . S GARY(ZI,7)=""
  . D GENHTML^C0TSWSU(RTN,"GARY")
  . S @RTN@($O(@RTN@(""),-1)+1)=GBOT
- ;M @RTN=SETS
- ;
- Q
+ . D RMCNT0^C0TSWSU(RTN)
+ I FORMAT="json" S HTTPRSP("mime")="application/json" D WSCDSETJ^C0TSWSU(RTN,.SETS) Q
+ I FORMAT="xml" S HTTPRSP("mime")="text/xml; charset=utf-8" D WSCDSETX^C0TSWSU(RTN,.SETS) Q
+ I FORMAT="csv" S HTTPRSP("mime")="text/csv; charset=utf-8" D WSCDSETC^C0TSWSU(RTN,.SETS) Q
+ I FORMAT="mumps" S HTTPRSP("mime")="text/plain" M @RTN=SETS Q
+ S @RTN@(1)="{""error"":""Unsupported format""}" S HTTPRSP("mime")="application/json" Q
  ;
 wsCDLIST(RTN,FILTER) ; returns Codes from BSTS
  ; returns all codes from a codeset identified by id
@@ -108,6 +112,7 @@ wsCDLIST(RTN,FILTER) ; returns Codes from BSTS
  I MAX="" S MAX=4000
  S FORMAT=$G(FILTER("format"))
  I FORMAT="" S FORMAT="html"
+ I $$UNKFMT^C0TSWSU(FORMAT) S FORMAT="json"
  ;
  N SETS
  I '$$GETSETS^C0TSWSD("SETS") D  Q
@@ -116,7 +121,7 @@ wsCDLIST(RTN,FILTER) ; returns Codes from BSTS
  S NAME=SETS(IEN,"name")
  S TEXT=SETS(IEN,"text")
  ;
- N LST
+ N LST,CLROOT
  D LISTBUF^C0TSWSD(.LST,SETID) ; get the address of the list array for this codeset
  ;
  I FORMAT="html" D  Q
@@ -151,8 +156,14 @@ wsCDLIST(RTN,FILTER) ; returns Codes from BSTS
  . . S GARY(ZI,4)=@LST@(II,"concept")
  . D GENHTML^C0TSWSU(RTN,"GARY")
  . S @RTN@($O(@RTN@(""),-1)+1)=GBOT
- ;
- Q
+ . D RMCNT0^C0TSWSU(RTN)
+ S CLROOT("id")=SETID,CLROOT("name")=NAME,CLROOT("ref")=LST,CLROOT("max")=MAX
+ I LST="" D  S @RTN@(1)="{""error"":""no terms for this codeset""}" S HTTPRSP("mime")="application/json" Q
+ I FORMAT="json" S HTTPRSP("mime")="application/json" D WSCODEJ^C0TSWSU(RTN,.CLROOT) Q
+ I FORMAT="xml" S HTTPRSP("mime")="text/xml; charset=utf-8" D WSCODLXML^C0TSWSU(RTN,.CLROOT) Q
+ I FORMAT="csv" S HTTPRSP("mime")="text/csv; charset=utf-8" D WSCODLC^C0TSWSU(RTN,.CLROOT) Q
+ I FORMAT="mumps" S HTTPRSP("mime")="text/plain" I LST'="" M @RTN=@(LST) Q
+ S @RTN@(1)="{""error"":""Unsupported format""}" S HTTPRSP("mime")="application/json" Q
  ;
 wsCODE(RTN,FILTER) ; returns Code detail from BSTS TERMINOLOGY file
  ; format of the return is controlled by format= valid values are:
@@ -168,6 +179,7 @@ wsCODE(RTN,FILTER) ; returns Code detail from BSTS TERMINOLOGY file
  N CODE,FILE,FIELD,VALUE,IEN,FORMAT,TERMARY
  S FORMAT=$G(FILTER("format"))
  I FORMAT="" S FORMAT="html"
+ I $$UNKFMT^C0TSWSU(FORMAT) S FORMAT="json"
  S CODE=$G(FILTER("id"))
  S IEN=$G(FILTER("ien"))
  ;
@@ -198,8 +210,12 @@ wsCODE(RTN,FILTER) ; returns Code detail from BSTS TERMINOLOGY file
  . . . S GARY(ZI,3)=$G(TERMARY(II,JJ))
  . D GENHTML^C0TSWSU(RTN,"GARY")
  . S @RTN@($O(@RTN@(""),-1)+1)=GBOT
- ;
- Q
+ . D RMCNT0^C0TSWSU(RTN)
+ I FORMAT="json" S HTTPRSP("mime")="application/json" D WSTEMJ^C0TSWSU(RTN,CODE,"TERMARY") Q
+ I FORMAT="xml" S HTTPRSP("mime")="text/xml; charset=utf-8" D WSCODEX^C0TSWSU(RTN,CODE,"TERMARY") Q
+ I FORMAT="csv" S HTTPRSP("mime")="text/csv; charset=utf-8" D WSCODCC^C0TSWSU(RTN,CODE,"TERMARY") Q
+ I FORMAT="mumps" S HTTPRSP("mime")="text/plain" M @RTN=TERMARY Q
+ S @RTN@(1)="{""error"":""Unsupported format""}" S HTTPRSP("mime")="application/json" Q
  ;
 wsCON(RTN,FILTER) ; returns Concept detail from BSTS CONCEPT file
  ; format of the return is controlled by format= valid values are:
@@ -215,6 +231,7 @@ wsCON(RTN,FILTER) ; returns Concept detail from BSTS CONCEPT file
  N CONID,FILE,FIELD,VALUE,IEN,FORMAT,CONARY
  S FORMAT=$G(FILTER("format"))
  I FORMAT="" S FORMAT="html"
+ I $$UNKFMT^C0TSWSU(FORMAT) S FORMAT="json"
  S CONID=$G(FILTER("id"))
  I CONID="" S CONID=$G(FILTER("conceptid"))
  S IEN=$G(FILTER("ien"))
@@ -258,8 +275,12 @@ wsCON(RTN,FILTER) ; returns Concept detail from BSTS CONCEPT file
  . . . . . S GARY(ZI,4)=$G(CONARY(II,JJ,KK))
  . D GENHTML^C0TSWSU(RTN,"GARY")
  . S @RTN@($O(@RTN@(""),-1)+1)=GBOT
- ;
- Q
+ . D RMCNT0^C0TSWSU(RTN)
+ I FORMAT="json" S HTTPRSP("mime")="application/json" D WSCONJ^C0TSWSU(RTN,CONID,"CONARY") Q
+ I FORMAT="xml" S HTTPRSP("mime")="text/xml; charset=utf-8" D WSCONX^C0TSWSU(RTN,CONID,"CONARY") Q
+ I FORMAT="csv" S HTTPRSP("mime")="text/csv; charset=utf-8" D WSCONCC^C0TSWSU(RTN,CONID,"CONARY") Q
+ I FORMAT="mumps" S HTTPRSP("mime")="text/plain" M @RTN=CONARY Q
+ S @RTN@(1)="{""error"":""Unsupported format""}" S HTTPRSP("mime")="application/json" Q
  ;
 wsSUBLST(RTN,FILTER) ; returns Codes from BSTS subsets
  ; returns all codes from a subset identified by subset=
@@ -284,6 +305,7 @@ wsSUBLST(RTN,FILTER) ; returns Codes from BSTS subsets
  I MAX="" S MAX=4000
  S FORMAT=$G(FILTER("format"))
  I FORMAT="" S FORMAT="html"
+ I $$UNKFMT^C0TSWSU(FORMAT) S FORMAT="json"
  ;
  N SETS
  I '$$GETSETS^C0TSWSD("SETS") D  Q
@@ -292,7 +314,7 @@ wsSUBLST(RTN,FILTER) ; returns Codes from BSTS subsets
  S NAME=SETS(IEN,"name")
  S TEXT=SETS(IEN,"text")
  ;
- N SUB
+ N SUB,CLROOT
  S SUB=$$SUBBUF^C0TSWSD(SUBSET,SETID) ; get the address of the list array for this codeset
  ;
  I FORMAT="html" D  Q
@@ -325,8 +347,14 @@ wsSUBLST(RTN,FILTER) ; returns Codes from BSTS subsets
  . . S GARY(ZI,4)=@SUB@(II,"concept")
  . D GENHTML^C0TSWSU(RTN,"GARY")
  . S @RTN@($O(@RTN@(""),-1)+1)=GBOT
- ;
- Q
+ . D RMCNT0^C0TSWSU(RTN)
+ S CLROOT("id")=SETID,CLROOT("name")=SUBSET,CLROOT("ref")=SUB,CLROOT("max")=MAX
+ I SUB="" D  S @RTN@(1)="{""error"":""no terms for this subset""}" S HTTPRSP("mime")="application/json" Q
+ I FORMAT="json" S HTTPRSP("mime")="application/json" D WSCODEJ^C0TSWSU(RTN,.CLROOT) Q
+ I FORMAT="xml" S HTTPRSP("mime")="text/xml; charset=utf-8" D WSCODLXML^C0TSWSU(RTN,.CLROOT) Q
+ I FORMAT="csv" S HTTPRSP("mime")="text/csv; charset=utf-8" D WSCODLC^C0TSWSU(RTN,.CLROOT) Q
+ I FORMAT="mumps" S HTTPRSP("mime")="text/plain" I SUB'="" M @RTN=@(SUB) Q
+ S @RTN@(1)="{""error"":""Unsupported format""}" S HTTPRSP("mime")="application/json" Q
  ;
 THISPG(RTN,GURL) ; generate the top of page links
  N GARY,GTMP1,GTMP2,GTMP3,GTMP4,GTMP5,GTMP6,GTMP7,GURL
