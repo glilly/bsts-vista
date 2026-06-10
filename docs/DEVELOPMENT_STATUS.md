@@ -4,8 +4,8 @@ Status date: 2026-06-09
 Branch at time of writing: `feature/c0ts-format-bsts-integration`
 
 Part of the VistA-on-FHIR workspace. Ecosystem-level context lives in
-`VistA-FHIR-Server-Codex/docs/PROJECT_OVERVIEW.md`; the cross-repo roadmap is
-`VistA-FHIR-Server-Codex/docs/PATH_FORWARD.md`.
+`Vista-on-FHIR/docs/PROJECT_OVERVIEW.md`; the cross-repo roadmap is
+`Vista-on-FHIR/docs/PATH_FORWARD.md`.
 
 ## Role of this repository
 
@@ -57,7 +57,7 @@ C0T-terminology-gateway (which vendors `C0TSFM`, `C0TSWSD`, `C0TSUTL`).
 7. **Sync risk with Codex copies.** `C0TSWS.m`/`C0TSWSU.m` exist in three
    repos (here, Codex, C0T). Until ownership is consolidated, every change
    needs a three-way sync. See the consolidation recommendation in
-   `VistA-FHIR-Server-Codex/docs/PATH_FORWARD.md`.
+   `Vista-on-FHIR/docs/PATH_FORWARD.md`.
 
 ## Integration points
 
