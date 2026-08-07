@@ -1,8 +1,10 @@
 # Development Status and Gap Analysis — bsts-vista
 
-Status date: 2026-06-09
+Status date: 2026-08-07
 Branch at time of writing: `feature/c0ts-format-bsts-integration`
 
+
+Reviewed 2026-08-07: no material capability change since the June status; date advanced for the August project-report refresh.
 Part of the VistA-on-FHIR workspace. Ecosystem-level context lives in
 `Vista-on-FHIR/docs/PROJECT_OVERVIEW.md`; the cross-repo roadmap is
 `Vista-on-FHIR/docs/PATH_FORWARD.md`.
@@ -34,12 +36,12 @@ C0T-terminology-gateway (which vendors `C0TSFM`, `C0TSWSD`, `C0TSUTL`).
 
 ## Gap analysis
 
-1. **Search is not exposed over HTTP.** `SEARCH^BSTSAPI` exists in-process
-   but there is no normalized web search/typeahead endpoint here; interactive
-   search went to C0T's Lexicon path instead. Decide deliberately whether
-   C0TS ever grows a search endpoint or whether search is C0T's job
-   permanently (recommended: the latter, with C0T's planned `C0TBSTS`
-   provider calling `SEARCH^BSTSAPI` in-process).
+1. **Search is not exposed over HTTP here.** `SEARCH^BSTSAPI` exists
+   in-process, and C0T now ships `C0TBSTS.m` calling that API through the
+   normalized `terminology.search` contract. This repo still has no
+   typeahead `/bsts` search endpoint; interactive search remains C0T's job
+   (recommended), with rehmp using provider selection rather than direct
+   `/bsts`.
 2. **No pagination** on large codelists — only `max` truncation (default
    4000).
 3. **Route registration is environment-specific** (site `KBAIWS` config);
@@ -64,6 +66,6 @@ C0T-terminology-gateway (which vendors `C0TSFM`, `C0TSWSD`, `C0TSUTL`).
 | Repo | Relationship |
 |---|---|
 | VistA-FHIR-Server-Codex | Mirrors C0TS routines; install matrix smoke-tests `/bsts/*` |
-| C0T-terminology-gateway | Vendors C0TS helpers; future `C0TBSTS` provider will call `BSTSAPI` |
+| C0T-terminology-gateway | Vendors C0TS helpers; `C0TBSTS` now calls `BSTSAPI` in-process |
 | rehmp | Option A direct `/bsts` documented (`rehmp/docs/BSTS_TERMINOLOGY_OPTION_A.md`) but not active |
 | RPMS | BSTS is native to RPMS; key asset for the dual-stack plan |
