@@ -1,10 +1,13 @@
 # Development Status and Gap Analysis — bsts-vista
 
-Status date: 2026-08-07
-Branch at time of writing: `feature/c0ts-format-bsts-integration`
+Status date: 2026-10-27 (previous: 2026-08-07)
+Branch at time of writing: `feature/c0ts-format-bsts-integration` (merged
+into `master` on 2026-09-09; the two branches are identical)
 
 
-Reviewed 2026-08-07: no material capability change since the June status; date advanced for the August project-report refresh.
+Reviewed 2026-10-27: no commits in this repo since 2026-08-07; no material
+capability change since the June status. Date advanced for the October
+project-report refresh.
 Part of the VistA-on-FHIR workspace. Ecosystem-level context lives in
 `Vista-on-FHIR/docs/PROJECT_OVERVIEW.md`; the cross-repo roadmap is
 `Vista-on-FHIR/docs/PATH_FORWARD.md`.
